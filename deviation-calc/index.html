@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>偏差値計算ツール(得点・平均点・標準偏差から)</title>
+<meta name="description" content="得点、平均点、標準偏差を入れるだけで偏差値を計算。目標の偏差値に必要な得点や、上位何%かの目安も分かります。">
+<style>
+:root { --bg:#f6f7f9; --fg:#1d2330; --card:#fff; --accent:#2f6fed; --ok:#1c8a4b; --warn:#c77a00; --ng:#c62828; --line:#dfe3ea; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171d; --fg:#e8ebf0; --card:#1d222b; --accent:#6c9bff; --ok:#4cc27f; --warn:#f0b04a; --ng:#ff6b6b; --line:#2e3542; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.7; }
+main { max-width:560px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:1.35rem; margin:0 0 4px; }
+.lead { margin:0 0 20px; font-size:.9rem; opacity:.8; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+label { display:block; font-weight:600; font-size:.9rem; margin-top:12px; }
+label:first-child { margin-top:0; }
+.hint { font-weight:400; font-size:.8rem; opacity:.7; }
+input, select { width:100%; font-size:1rem; padding:10px; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); }
+#result .big, #goal .big { font-size:2rem; font-weight:700; margin:0; }
+#result ul { margin:8px 0 0; padding-left:1.2em; font-size:.9rem; }
+.ok { color:var(--ok); } .warn { color:var(--warn); } .ng { color:var(--ng); }
+h2 { font-size:1rem; margin:24px 0 8px; }
+.note { font-size:.85rem; opacity:.85; }
+footer { font-size:.75rem; opacity:.6; margin-top:24px; }
+a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>偏差値 計算ツール</h1>
+  <p class="lead">得点・平均点・標準偏差を入れると、偏差値が分かります。標準偏差は、返却された成績表や模試の結果に載っています。</p>
+
+  <div class="card">
+    <label>あなたの得点
+      <input id="score" type="number" inputmode="decimal" step="any" value="70">
+    </label>
+    <label>平均点
+      <input id="mean" type="number" inputmode="decimal" step="any" value="55">
+    </label>
+    <label>標準偏差
+      <span class="hint">(得点のばらつき。0より大きい数)</span>
+      <input id="sd" type="number" inputmode="decimal" step="any" min="0" value="12">
+    </label>
+  </div>
+
+  <div class="card" id="result" aria-live="polite"></div>
+
+  <div class="card">
+    <label>目標の偏差値
+      <input id="target" type="number" inputmode="decimal" step="any" value="60">
+    </label>
+    <div id="goal" aria-live="polite" style="margin-top:12px"></div>
+  </div>
+
+  <h2>使い方と考え方</h2>
+  <p class="note">偏差値 = 50 + 10 × (得点 − 平均点) ÷ 標準偏差。平均点ちょうどなら50で、標準偏差1つぶん上なら60です。</p>
+  <p class="note">「上位◯%」は、得点が正規分布(釣り鐘型)に従うと仮定した概算です。テストの分布が偏っていると、実際の順位とずれます。</p>
+
+  <h2>よくある質問</h2>
+  <p class="note"><b>Q. 偏差値とは?</b><br>平均点を50として、自分の得点が平均からどれだけ離れているかを、ばらつき(標準偏差)を基準に表した値です。平均点ちょうどが50、標準偏差1つぶん上が60になります。</p>
+  <p class="note"><b>Q. 標準偏差が分かりません。</b><br>模試の成績表や、授業・試験の結果の資料に書かれていることがあります。分からない場合は、このツールでは偏差値を出せません。</p>
+  <p class="note"><b>Q. 偏差値60は上位何%ですか?</b><br>正規分布を仮定すると、上位16%前後です。実際の分布が偏っていると、ずれます。</p>
+  <p class="note"><b>Q. 模試の偏差値と、ここで出した偏差値は同じですか?</b><br>集団(受験者)が違えば、同じ得点でも偏差値は変わります。ここで出す値は、入力した平均点と標準偏差が前提の目安です。</p>
+  <p class="note"><a href="../">← ミニツール一覧へ</a></p>
+
+  <footer>
+    このツールは目安です。実際の偏差値は、模試・試験の実施元が出した値を確認してください。入力した内容は端末の外に送信されません。
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var ids = ["score", "mean", "sd", "target"];
+
+  function val(id) {
+    var v = parseFloat($(id).value);
+    return isNaN(v) ? null : v;
+  }
+
+  // 標準正規分布の累積分布(Abramowitz-Stegun の近似、誤差は1e-7程度)
+  function cdf(z) {
+    var t = 1 / (1 + 0.2316419 * Math.abs(z));
+    var d = 0.3989423 * Math.exp(-z * z / 2);
+    var p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.781478 + t * (-1.821256 + t * 1.330274))));
+    return z > 0 ? 1 - p : p;
+  }
+
+  function calc() {
+    var x = val("score"), m = val("mean"), s = val("sd"), t = val("target");
+    var box = $("result"), goal = $("goal");
+    if (x === null || m === null || s === null || s <= 0) {
+      box.innerHTML = "<p>得点・平均点を入れ、標準偏差は0より大きい数を入れてください。</p>";
+      goal.innerHTML = "";
+      return;
+    }
+    var dev = 50 + 10 * (x - m) / s;
+    var z = (x - m) / s;
+    var top = (1 - cdf(z)) * 100;
+    var cls = dev >= 60 ? "ok" : (dev >= 45 ? "warn" : "ng");
+    var html = '<p class="big ' + cls + '">偏差値 ' + dev.toFixed(1) + "</p>";
+    html += "<ul>";
+    html += "<li>平均点との差: " + (x - m >= 0 ? "+" : "") + (Math.round((x - m) * 100) / 100) + "点</li>";
+    html += "<li>上位の目安: 約" + (top < 1 ? top.toFixed(1) : Math.round(top)) + "%(正規分布を仮定した概算)</li>";
+    html += "</ul>";
+    box.innerHTML = html;
+
+    if (t === null) { goal.innerHTML = ""; return; }
+    var need = m + (t - 50) * s / 10;
+    goal.innerHTML = '<p class="big">' + (Math.round(need * 10) / 10) + "点</p>" +
+      '<p class="note" style="margin:0">偏差値 ' + t + " に必要な得点の目安です(今回の平均点・標準偏差の場合)。</p>";
+  }
+
+  ids.forEach(function (id) {
+    $(id).addEventListener("input", calc);
+    $(id).addEventListener("change", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>

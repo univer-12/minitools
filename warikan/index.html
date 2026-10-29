@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>傾斜割り勘 計算ツール(先輩多め・後輩少なめ)</title>
+<meta name="description" content="飲み会の合計金額と人数を入れるだけで、先輩は多め・後輩は少なめの傾斜つき割り勘を計算。端数の丸め方も選べます。">
+<style>
+:root { --bg:#f6f7f9; --fg:#1d2330; --card:#fff; --accent:#2f6fed; --ok:#1c8a4b; --warn:#c77a00; --ng:#c62828; --line:#dfe3ea; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171d; --fg:#e8ebf0; --card:#1d222b; --accent:#6c9bff; --ok:#4cc27f; --warn:#f0b04a; --ng:#ff6b6b; --line:#2e3542; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.7; }
+main { max-width:560px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:1.35rem; margin:0 0 4px; }
+.lead { margin:0 0 20px; font-size:.9rem; opacity:.8; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+label { display:block; font-weight:600; font-size:.9rem; margin-top:12px; }
+label:first-child { margin-top:0; }
+.hint { font-weight:400; font-size:.8rem; opacity:.7; }
+input, select { width:100%; font-size:1rem; padding:10px; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); }
+.row { display:flex; gap:12px; }
+.row > label { flex:1; margin-top:12px; min-width:0; }
+#result .big { font-size:2rem; font-weight:700; margin:0; }
+#result .status { font-weight:700; margin:4px 0 8px; }
+#result ul { margin:8px 0 0; padding-left:1.2em; font-size:.9rem; }
+.ok { color:var(--ok); } .warn { color:var(--warn); } .ng { color:var(--ng); }
+h2 { font-size:1rem; margin:24px 0 8px; }
+.note { font-size:.85rem; opacity:.85; }
+footer { font-size:.75rem; opacity:.6; margin-top:24px; }
+a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>傾斜割り勘 計算ツール</h1>
+  <p class="lead">合計金額と人数を入れると、多めに払う人・少なめに払う人・ふつうの人の金額が分かります。</p>
+
+  <div class="card">
+    <label>合計金額(円)
+      <input id="total" type="number" inputmode="numeric" min="0" value="30000">
+    </label>
+    <div class="row">
+      <label>多めに払う人数
+        <input id="nHigh" type="number" inputmode="numeric" min="0" value="2">
+      </label>
+      <label>ふつうの人数
+        <input id="nMid" type="number" inputmode="numeric" min="0" value="3">
+      </label>
+      <label>少なめの人数
+        <input id="nLow" type="number" inputmode="numeric" min="0" value="3">
+      </label>
+    </div>
+    <div class="row">
+      <label>多めの人は ふつうの
+        <select id="kHigh">
+          <option value="120">1.2倍</option>
+          <option value="150" selected>1.5倍</option>
+          <option value="200">2倍</option>
+        </select>
+      </label>
+      <label>少なめの人は ふつうの
+        <select id="kLow">
+          <option value="80">0.8倍</option>
+          <option value="70">0.7倍</option>
+          <option value="50" selected>0.5倍</option>
+        </select>
+      </label>
+    </div>
+    <label>金額のきりのよさ
+      <select id="unit">
+        <option value="100" selected>100円単位(切り上げ)</option>
+        <option value="10">10円単位(切り上げ)</option>
+        <option value="1">1円単位(切り上げ)</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="card" id="result" aria-live="polite"></div>
+
+  <h2>使い方と考え方</h2>
+  <p class="note">ふつうの人の金額を1として、多めの人は1.5倍、少なめの人は0.5倍のように重みをつけ、合計金額を重みの合計で割ります。各人の金額は、きりのよい単位に切り上げます。</p>
+  <p class="note">切り上げるので、集めた金額が合計より少し多くなります。そのぶんは幹事のおつり(次回の会費や二次会の足し)にしてください。</p>
+
+  <h2>よくある質問</h2>
+  <p class="note"><b>Q. 傾斜割り勘の倍率は、どのくらいにすればいいですか?</b><br>決まりはありません。多めの人を1.2〜1.5倍、少なめの人を0.5〜0.8倍にする使い方が多いです。人数が少ないときは、差を小さめにすると決めやすくなります。</p>
+  <p class="note"><b>Q. 端数はどうなりますか?</b><br>各人の金額を、選んだ単位(100円・10円・1円)に切り上げます。集まる金額が合計より少し多くなり、そのぶんは幹事のおつりとして表示します。</p>
+  <p class="note"><b>Q. 幹事は払わなくていいですか?</b><br>幹事も参加者の1人として人数に入れてください。幹事だけ少なめにしたい場合は、「少なめ」の人数に含めます。</p>
+  <p class="note"><a href="../">← ミニツール一覧へ</a></p>
+
+  <footer>
+    このツールは目安です。入力した内容は端末の外に送信されません。
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var ids = ["total", "nHigh", "nMid", "nLow", "kHigh", "kLow", "unit"];
+
+  function toInt(id) {
+    var v = parseInt($(id).value, 10);
+    return isNaN(v) || v < 0 ? 0 : v;
+  }
+  function yen(n) { return n.toLocaleString("ja-JP") + "円"; }
+
+  function calc() {
+    var total = toInt("total");
+    var nH = toInt("nHigh"), nM = toInt("nMid"), nL = toInt("nLow");
+    var kH = toInt("kHigh"), kL = toInt("kLow"), u = toInt("unit");
+    var box = $("result");
+    var people = nH + nM + nL;
+
+    if (people < 1 || total < 1) {
+      box.innerHTML = "<p>合計金額と人数(1人以上)を入れてください。</p>";
+      return;
+    }
+
+    // 重みは100倍の整数で持ち、小数誤差を避ける
+    var sumW = nH * kH + nM * 100 + nL * kL;
+    function pay(w) { return Math.ceil(total * w / (sumW * u)) * u; }
+    var pH = pay(kH), pM = pay(100), pL = pay(kL);
+    var collected = nH * pH + nM * pM + nL * pL;
+    var change = collected - total;
+
+    var html = '<p class="big">' + yen(pM) + '<span style="font-size:1rem;font-weight:400"> / ふつうの人</span></p>';
+    html += "<ul>";
+    if (nH > 0) html += "<li>多めの人(" + nH + "人): " + yen(pH) + "</li>";
+    if (nM > 0) html += "<li>ふつうの人(" + nM + "人): " + yen(pM) + "</li>";
+    if (nL > 0) html += "<li>少なめの人(" + nL + "人): " + yen(pL) + "</li>";
+    html += "<li>集まる金額: " + yen(collected) + "(合計 " + yen(total) + " + 幹事のおつり " + yen(change) + ")</li>";
+    html += "</ul>";
+    box.innerHTML = html;
+  }
+
+  ids.forEach(function (id) {
+    $(id).addEventListener("input", calc);
+    $(id).addEventListener("change", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>

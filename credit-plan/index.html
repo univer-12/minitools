@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>卒業単位 計算ツール(あと何単位・1学期にいくつ必要か)</title>
+<meta name="description" content="卒業に必要な単位と取得済みの単位を入れるだけで、あと何単位か、残りの学期で1学期あたり何単位とればよいかを計算。区分別の不足も確認できます。">
+<style>
+:root { --bg:#f6f7f9; --fg:#1d2330; --card:#fff; --accent:#2f6fed; --ok:#1c8a4b; --warn:#c77a00; --ng:#c62828; --line:#dfe3ea; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171d; --fg:#e8ebf0; --card:#1d222b; --accent:#6c9bff; --ok:#4cc27f; --warn:#f0b04a; --ng:#ff6b6b; --line:#2e3542; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.7; }
+main { max-width:560px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:1.35rem; margin:0 0 4px; }
+.lead { margin:0 0 20px; font-size:.9rem; opacity:.8; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+label { display:block; font-weight:600; font-size:.9rem; margin-top:12px; }
+label:first-child { margin-top:0; }
+.hint { font-weight:400; font-size:.8rem; opacity:.7; }
+input, select { width:100%; font-size:1rem; padding:10px; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); }
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; font-size:.8rem; font-weight:600; opacity:.75; padding:0 6px 4px 0; }
+td { padding:4px 6px 4px 0; vertical-align:middle; }
+td input { margin-top:0; }
+td.s { white-space:nowrap; font-weight:700; text-align:right; font-size:.9rem; }
+#result .big { font-size:2rem; font-weight:700; margin:0; }
+#result .status { font-weight:700; margin:4px 0 8px; }
+#result ul { margin:8px 0 0; padding-left:1.2em; font-size:.9rem; }
+.ok { color:var(--ok); } .warn { color:var(--warn); } .ng { color:var(--ng); }
+h2 { font-size:1rem; margin:24px 0 8px; }
+.note { font-size:.85rem; opacity:.85; }
+footer { font-size:.75rem; opacity:.6; margin-top:24px; }
+a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>卒業単位 計算ツール</h1>
+  <p class="lead">卒業までにあと何単位必要か、残りの学期で1学期にいくつとればよいかが分かります。必要な単位数は、履修要項の「卒業要件」を見て入れてください。</p>
+
+  <div class="card">
+    <label>卒業に必要な総単位数 <span class="hint">(履修要項で確認)</span>
+      <input id="need" type="number" inputmode="numeric" min="0" value="124">
+    </label>
+    <label>取得済みの単位数
+      <input id="have" type="number" inputmode="numeric" min="0" value="80">
+    </label>
+    <label>今学期に履修中の単位数 <span class="hint">(単位が出る見込みのぶん。なければ0)</span>
+      <input id="now" type="number" inputmode="numeric" min="0" value="20">
+    </label>
+    <label>今学期のあと、残りの学期数 <span class="hint">(休学・留年は含めず、卒業予定までの学期)</span>
+      <input id="terms" type="number" inputmode="numeric" min="0" value="2">
+    </label>
+    <label>1学期に履修できる単位の上限 <span class="hint">(CAP制がなければ空欄)</span>
+      <input id="cap" type="number" inputmode="numeric" min="0" value="">
+    </label>
+  </div>
+
+  <div class="card" id="result" aria-live="polite"></div>
+
+  <div class="card">
+    <p class="note" style="margin-top:0"><b>区分別の確認(任意)</b> 必修・選択・教養など、区分ごとの必要単位を入れると不足が分かります。</p>
+    <table>
+      <thead><tr><th>区分名</th><th>必要</th><th>取得済</th><th style="text-align:right">不足</th></tr></thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
+
+  <h2>使い方と考え方</h2>
+  <p class="note">あと必要な単位 = 必要な総単位 − 取得済み − 今学期の見込み。1学期あたり = あと必要な単位 ÷ 残りの学期数(切り上げ)です。</p>
+  <p class="note">総単位が足りていても、必修科目や区分ごとの条件が足りないと卒業できません。下の区分別の表で確認してください。</p>
+
+  <h2>よくある質問</h2>
+  <p class="note"><b>Q. 総単位が足りていれば卒業できますか?</b><br>できるとは限りません。必修科目や、教養・専門などの区分ごとの条件が、別に決まっています。上の区分別の表で確認してください。</p>
+  <p class="note"><b>Q. 卒業に必要な単位は、何単位ですか?</b><br>学部・学科・入学年度で違います。履修要項の「卒業要件」で、自分の入学年度の表を確認してください。</p>
+  <p class="note"><b>Q. CAP制とは?</b><br>1学期(または1年)に履修登録できる単位数に、上限を設ける制度です。上限がある大学では、残りの学期で必要な単位が上限を超えないかを、確認してください。</p>
+  <p class="note"><b>Q. 今学期の単位は、取れるものとして入れていいですか?</b><br>成績が出るまで確定しません。不安なときは、今学期を0にして計算すると、安全側の目安になります。</p>
+  <p class="note"><a href="../">← ミニツール一覧へ</a></p>
+
+  <footer>
+    このツールは目安です。卒業要件・単位の数え方・履修の上限は、必ず履修要項と学務の案内で確認してください。入力した内容は端末の外に送信されません。
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var DEFAULTS = [["必修", 30, 20], ["専門選択", 40, 25], ["教養・共通", 24, 20], ["", "", ""], ["", "", ""]];
+
+  var tbody = $("rows");
+  DEFAULTS.forEach(function (d, i) {
+    var tr = document.createElement("tr");
+    tr.innerHTML =
+      '<td><input id="n' + i + '" type="text" placeholder="区分名" value="' + d[0] + '"></td>' +
+      '<td><input id="r' + i + '" type="number" inputmode="numeric" min="0" value="' + d[1] + '"></td>' +
+      '<td><input id="h' + i + '" type="number" inputmode="numeric" min="0" value="' + d[2] + '"></td>' +
+      '<td class="s" id="s' + i + '"></td>';
+    tbody.appendChild(tr);
+  });
+
+  function toInt(id) {
+    var v = parseInt($(id).value, 10);
+    return isNaN(v) || v < 0 ? 0 : v;
+  }
+
+  function calc() {
+    var need = toInt("need"), have = toInt("have"), now = toInt("now");
+    var terms = toInt("terms");
+    var capRaw = parseInt($("cap").value, 10);
+    var cap = isNaN(capRaw) || capRaw < 1 ? 0 : capRaw;
+    var left = need - have - now;
+    var box = $("result");
+    var html;
+
+    if (need < 1) {
+      html = "<p>卒業に必要な総単位数を入れてください。</p>";
+    } else if (left <= 0) {
+      html = '<p class="big ok">総単位は足りる見込み</p>' +
+        '<p class="status ok">取得済み ' + have + " + 今学期 " + now + " = " + (have + now) + "単位(必要 " + need + "単位)</p>" +
+        '<p class="note" style="margin:0">区分別の条件(必修など)は、下の表で確認してください。</p>';
+    } else if (terms < 1) {
+      html = '<p class="big ng">あと ' + left + "単位</p>" +
+        '<p class="status ng">残りの学期が0です。このままでは足りません。学務や担当に早めに相談を。</p>';
+    } else {
+      var per = Math.ceil(left / terms);
+      var cls = cap > 0 && per > cap ? "ng" : (per > 24 ? "warn" : "ok");
+      html = '<p class="big ' + cls + '">あと ' + left + "単位</p>";
+      html += '<p class="status ' + cls + '">残り ' + terms + "学期なら、1学期に " + per + "単位が必要です</p>";
+      if (cap > 0 && per > cap) html += '<p class="status ng">履修の上限(' + cap + "単位)を超えます。学期を増やすなど、相談が必要です。</p>";
+      html += "<ul><li>必要 " + need + " − 取得済み " + have + " − 今学期 " + now + " = " + left + "単位</li></ul>";
+    }
+    box.innerHTML = html;
+
+    for (var i = 0; i < DEFAULTS.length; i++) {
+      var r = toInt("r" + i), h = toInt("h" + i);
+      var cell = $("s" + i);
+      if ($("r" + i).value === "" && $("h" + i).value === "") { cell.textContent = ""; continue; }
+      var d = r - h;
+      cell.textContent = d > 0 ? "あと " + d : "OK";
+      cell.className = "s " + (d > 0 ? "warn" : "ok");
+    }
+  }
+
+  document.querySelectorAll("input").forEach(function (el) {
+    el.addEventListener("input", calc);
+    el.addEventListener("change", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>

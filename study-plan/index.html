@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>試験日から逆算 勉強計画ツール(1日あと何ページ?)</title>
+<meta name="description" content="試験日と勉強する量を入れるだけで、1日にどれだけ進めればよいかを逆算。何周するか、予備日、休む日も設定できます。">
+<style>
+:root { --bg:#f6f7f9; --fg:#1d2330; --card:#fff; --accent:#2f6fed; --ok:#1c8a4b; --warn:#c77a00; --ng:#c62828; --line:#dfe3ea; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171d; --fg:#e8ebf0; --card:#1d222b; --accent:#6c9bff; --ok:#4cc27f; --warn:#f0b04a; --ng:#ff6b6b; --line:#2e3542; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.7; }
+main { max-width:560px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:1.35rem; margin:0 0 4px; }
+.lead { margin:0 0 20px; font-size:.9rem; opacity:.8; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+label { display:block; font-weight:600; font-size:.9rem; margin-top:12px; }
+label:first-child { margin-top:0; }
+.hint { font-weight:400; font-size:.8rem; opacity:.7; }
+input, select { width:100%; font-size:1rem; padding:10px; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); }
+.row { display:flex; gap:12px; }
+.row > label { flex:1; margin-top:12px; min-width:0; }
+#result .big { font-size:2rem; font-weight:700; margin:0; }
+#result .status { font-weight:700; margin:4px 0 8px; }
+#result ul { margin:8px 0 0; padding-left:1.2em; font-size:.9rem; }
+.ok { color:var(--ok); } .warn { color:var(--warn); } .ng { color:var(--ng); }
+h2 { font-size:1rem; margin:24px 0 8px; }
+.note { font-size:.85rem; opacity:.85; }
+footer { font-size:.75rem; opacity:.6; margin-top:24px; }
+a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>試験日から逆算 勉強計画ツール</h1>
+  <p class="lead">試験日と、勉強する量(ページ数・問題数など)を入れると、1日にどれだけ進めればよいかが分かります。</p>
+
+  <div class="card">
+    <div class="row">
+      <label>今日
+        <input id="today" type="date">
+      </label>
+      <label>試験日
+        <input id="exam" type="date">
+      </label>
+    </div>
+    <label>全体の量 <span class="hint">(ページ数・問題数・章の数など。1周分)</span>
+      <input id="amount" type="number" inputmode="numeric" min="0" value="300">
+    </label>
+    <div class="row">
+      <label>終わっている量
+        <input id="done" type="number" inputmode="numeric" min="0" value="0">
+      </label>
+      <label>何周する?
+        <select id="loops">
+          <option value="1">1周</option>
+          <option value="2">2周</option>
+          <option value="3" selected>3周</option>
+          <option value="4">4周</option>
+          <option value="5">5周</option>
+        </select>
+      </label>
+    </div>
+    <div class="row">
+      <label>試験前の予備日 <span class="hint">(日)</span>
+        <input id="spare" type="number" inputmode="numeric" min="0" value="2">
+      </label>
+      <label>週に休む日 <span class="hint">(日)</span>
+        <select id="rest">
+          <option value="0">0日</option>
+          <option value="1" selected>1日</option>
+          <option value="2">2日</option>
+        </select>
+      </label>
+    </div>
+    <label>1単位(1ページなど)にかかる時間 <span class="hint">(分。分からなければ空欄)</span>
+      <input id="mins" type="number" inputmode="decimal" min="0" step="any" value="">
+    </label>
+  </div>
+
+  <div class="card" id="result" aria-live="polite"></div>
+
+  <h2>使い方と考え方</h2>
+  <p class="note">残りの量 = 全体の量 × 周回数 − 終わっている量。使える日数 = 試験日までの日数 − 予備日 を、休む日のぶん減らしたものです。1日の量 = 残りの量 ÷ 使える日数(切り上げ)。</p>
+  <p class="note">「今日」の日付は、今日の勉強を含めて数えます。試験当日は、勉強の日数に入れません。</p>
+
+  <h2>よくある質問</h2>
+  <p class="note"><b>Q. 何周するのがよいですか?</b><br>決まりはありません。試験の形式や、理解度で変わります。1周目は時間をかけ、2周目以降は、間違えた所だけを繰り返す使い方もあります。</p>
+  <p class="note"><b>Q. 予備日は何のためですか?</b><br>体調不良や急な予定で、計画が遅れたときの調整日です。試験の直前に、見直しだけをする日としても使えます。</p>
+  <p class="note"><b>Q. 1日の量が多すぎます。</b><br>周回数を減らす、試験範囲を絞る、休む日を減らす、のどれかを試してください。もっと早く始めるのが、いちばん効果があります。</p>
+  <p class="note"><a href="../">← ミニツール一覧へ</a></p>
+
+  <footer>
+    このツールは目安です。理解に時間がかかる範囲や、ほかの科目の試験・課題の予定は反映されません。入力した内容は端末の外に送信されません。
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  function toInt(id) {
+    var v = parseInt($(id).value, 10);
+    return isNaN(v) || v < 0 ? 0 : v;
+  }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function ymd(d) { return d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate()); }
+  // 日付は「年-月-日」を UTC の0時にそろえて差を取り、夏時間などのずれを避ける
+  function dayNum(s) {
+    var p = s.split("-");
+    return Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000;
+  }
+
+  function calc() {
+    var box = $("result");
+    if (!$("today").value || !$("exam").value) {
+      box.innerHTML = "<p>今日と試験日を入れてください。</p>";
+      return;
+    }
+    var days = dayNum($("exam").value) - dayNum($("today").value);
+    var amount = toInt("amount"), done = toInt("done"), loops = toInt("loops");
+    var spare = toInt("spare"), rest = toInt("rest");
+    var total = amount * loops;
+    var remain = Math.max(0, total - done);
+    var minsRaw = parseFloat($("mins").value);
+    var mins = isNaN(minsRaw) || minsRaw <= 0 ? 0 : minsRaw;
+
+    if (days < 1) {
+      box.innerHTML = '<p class="big ng">試験日が今日以前です</p><p>試験日を、今日より後の日付にしてください。</p>';
+      return;
+    }
+    if (remain === 0) {
+      box.innerHTML = '<p class="big ok">計画の量は終わっています</p>';
+      return;
+    }
+    var avail = days - spare;
+    var study = Math.floor(avail * (7 - rest) / 7);
+    if (study < 1) {
+      box.innerHTML = '<p class="big ng">勉強できる日がありません</p><p>試験日まで ' + days + "日、予備日 " + spare + "日です。予備日や休む日を減らすか、試験日を確認してください。</p>";
+      return;
+    }
+    var per = Math.ceil(remain / study);
+    var cls = per > amount ? "ng" : (per * 2 > amount ? "warn" : "ok");
+    var html = '<p class="big ' + cls + '">1日 ' + per + "ずつ</p>";
+    html += '<p class="status ' + cls + '">試験日まで ' + days + "日 / 勉強できる日 " + study + "日</p>";
+    html += "<ul>";
+    html += "<li>残りの量: " + remain + "(全体 " + amount + " × " + loops + "周 − 終わり " + done + ")</li>";
+    html += "<li>勉強できる日: " + study + "日(予備日 " + spare + "日と、週" + rest + "日の休みを除く)</li>";
+    if (mins > 0) {
+      var tm = Math.round(per * mins);
+      html += "<li>1日の勉強時間の目安: 約" + (tm >= 60 ? Math.floor(tm / 60) + "時間" : "") + (tm % 60 || tm < 60 ? (tm % 60) + "分" : "") + "</li>";
+    }
+    if (per > amount) html += "<li>1日の量が全体の1周分より多くなっています。周回数を減らすか、早めに始めましょう。</li>";
+    html += "</ul>";
+    box.innerHTML = html;
+  }
+
+  var now = new Date();
+  $("today").value = ymd(now);
+  var d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 30);
+  $("exam").value = ymd(d);
+
+  ["today", "exam", "amount", "done", "loops", "spare", "rest", "mins"].forEach(function (id) {
+    $(id).addEventListener("input", calc);
+    $(id).addEventListener("change", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大学生バイトの年収の壁シミュレーター(2026年分・160万・178万・150万の壁)</title>
+<meta name="description" content="バイトの年収を入れるだけで、所得税・親の扶養控除・親の健康保険の扶養の「壁」まであといくらかが分かります。2026年分と2025年分を切り替え可能。">
+<style>
+:root { --bg:#f6f7f9; --fg:#1d2330; --card:#fff; --accent:#2f6fed; --ok:#1c8a4b; --warn:#c77a00; --ng:#c62828; --line:#dfe3ea; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171d; --fg:#e8ebf0; --card:#1d222b; --accent:#6c9bff; --ok:#4cc27f; --warn:#f0b04a; --ng:#ff6b6b; --line:#2e3542; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.7; }
+main { max-width:560px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:1.35rem; margin:0 0 4px; }
+.lead { margin:0 0 20px; font-size:.9rem; opacity:.8; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+label { display:block; font-weight:600; font-size:.9rem; margin-top:12px; }
+label:first-child { margin-top:0; }
+.hint { font-weight:400; font-size:.8rem; opacity:.7; }
+input, select { width:100%; font-size:1rem; padding:10px; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); }
+#result .big { font-size:1.6rem; font-weight:700; margin:0; line-height:1.4; }
+#result .status { font-weight:700; margin:4px 0 8px; }
+#result ul { margin:8px 0 0; padding-left:1.2em; font-size:.9rem; }
+table { width:100%; border-collapse:collapse; font-size:.88rem; }
+th { text-align:left; font-size:.78rem; font-weight:600; opacity:.75; padding:0 6px 6px 0; }
+td { padding:8px 6px 8px 0; border-top:1px solid var(--line); vertical-align:top; }
+td.r { white-space:nowrap; text-align:right; font-weight:700; }
+.ok { color:var(--ok); } .warn { color:var(--warn); } .ng { color:var(--ng); }
+h2 { font-size:1rem; margin:24px 0 8px; }
+.note { font-size:.85rem; opacity:.85; }
+.alert { font-size:.85rem; color:var(--warn); margin:8px 0 0; }
+footer { font-size:.75rem; opacity:.6; margin-top:24px; }
+a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>バイトの年収の壁 シミュレーター</h1>
+  <p class="lead">大学生のバイト収入を入れると、所得税・親の税の扶養・親の健康保険の扶養の「壁」まで、あといくらかが分かります。</p>
+
+  <div class="card">
+    <label>どの年の収入で見る?
+      <select id="year">
+        <option value="2026" selected>2026年分(令和8年。今年の収入)</option>
+        <option value="2025">2025年分(令和7年。昨年の収入)</option>
+      </select>
+    </label>
+    <label>年間の給与収入 <span class="hint">(万円。通勤手当を除く、額面の合計。見込みでOK)</span>
+      <input id="income" type="number" inputmode="decimal" step="0.1" min="0" value="120">
+    </label>
+    <label>年間の通勤手当 <span class="hint">(万円。もらっていなければ0)</span>
+      <input id="commute" type="number" inputmode="decimal" step="0.1" min="0" value="0">
+    </label>
+    <label>12月31日時点の年齢
+      <select id="age">
+        <option value="u22" selected>19〜22歳</option>
+        <option value="o23">23歳以上</option>
+        <option value="u18">16〜18歳</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="card" id="result" aria-live="polite"></div>
+
+  <div class="card">
+    <table>
+      <thead><tr><th>壁</th><th>年収の目安</th><th style="text-align:right">いまの状態</th></tr></thead>
+      <tbody id="walls"></tbody>
+    </table>
+    <p class="alert" id="warn"></p>
+  </div>
+
+  <h2>3種類の「扶養」は別物です</h2>
+  <p class="note">①親の<b>税</b>の扶養(親の所得税・住民税が安くなる控除)、②親の<b>健康保険</b>の扶養(保険料の負担がなくなる)、③親の勤務先の家族手当。この3つは、それぞれ基準が違います。年収の数え方も違い、税は1〜12月の給与収入、健康保険はこれからの1年の見込み収入(通勤手当・賞与を含む)です。</p>
+  <p class="note">19〜22歳の親の税の扶養は、「103万円」「123万円」を超えても控除はなくなりません。2025年分から新設の特定親族特別控除により、63万円の控除が本人の合計所得85万円(2026年分は給与年収159万円)まで続き、そこから段階的に減ります。</p>
+  <p class="note">学生は、週20時間以上働いて従業員51人以上の会社でも、原則として勤め先の社会保険(いわゆる106万円の壁)の対象外です。ただし休学中・通信制・夜間(定時制)・卒業後も同じ会社で働く予定の人などは例外です。</p>
+  <p class="note">住民税は前年の収入で決まり、ここでは所得割がかかり始める目安だけを表示しています。均等割は住んでいる地域(級地)で線が違うので、お住まいの市区町村で確認してください。</p>
+
+  <h2>よくある質問</h2>
+  <p class="note"><b>Q. 「103万円の壁」はまだありますか?</b><br>所得税がかかり始める給与年収の目安は、2025年分で160万円、2026年分で178万円に変わりました(給与所得控除と基礎控除の引き上げ)。ただし、親の扶養や社会保険の基準は、それぞれ別のラインです。</p>
+  <p class="note"><b>Q. 「年収」には何を入れますか?</b><br>1月から12月に受け取る給与の額面の合計です。通勤手当は別の欄に入れてください。親の健康保険の扶養では、通勤手当も年間収入に含めて判定されます。</p>
+  <p class="note"><b>Q. 親の健康保険の扶養に入れる上限は?</b><br>19〜22歳は年間収入150万円未満(2025年10月から)、それ以外は130万円未満が原則です。加入先の健康保険組合によって、運用が違うことがあります。</p>
+  <p class="note"><b>Q. 年末調整や手続きは必要ですか?</b><br>親の扶養控除を受けるには、親の勤務先で申告書の提出が必要です。2026年分の改正は、12月の年末調整から反映されます。</p>
+  <p class="note"><a href="../">← ミニツール一覧へ</a></p>
+
+  <footer>
+    このツールは目安です。制度は改正が続いており、自治体・親の健康保険組合・勤務先で扱いが違います。2025年分の特定親族特別控除の段階ごとの額は、2026年分と同じと仮定しています(未確認)。実際の判定は、国税庁・日本年金機構・加入先の保険者・勤務先・市区町村に確認してください。入力した内容は端末の外に送信されません。
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  // 年ごとの設定(円)。D0=給与所得控除の最低額、B=基礎控除(合計所得132万円以下)、REQ=扶養の所得要件
+  var Y = {
+    "2026": { D0: 740000, REQ: 620000, label: "2026年分" },
+    "2025": { D0: 650000, REQ: 580000, label: "2025年分" }
+  };
+  var B = { "2026": 1040000, "2025": 950000 };
+
+  // 特定親族特別控除(所得税)。本人の合計所得の上限(円)と親の控除額(円)
+  var STEPS = [
+    [850000, 630000], [900000, 610000], [950000, 510000], [1000000, 410000], [1050000, 310000],
+    [1100000, 210000], [1150000, 110000], [1200000, 60000], [1230000, 30000]
+  ];
+
+  function man(n) {
+    var m = Math.round(n / 1000) / 10;
+    return String(m);
+  }
+  function yen(id) {
+    var v = parseFloat($(id).value);
+    return isNaN(v) || v < 0 ? 0 : Math.round(v * 10000);
+  }
+
+  // 給与所得控除(給与年収に対する)。最低額を超える部分は「収入×30%+8万円」(360万円以下)
+  function salaryDeduction(r, d0) {
+    var low = Math.round((d0 - 80000) * 10 / 3); // 30%+8万=d0 となる収入(2026年分は220万円、2025年分は190万円)
+    if (r <= low) return d0;
+    if (r <= 3600000) return Math.floor(r * 3 / 10) + 80000;
+    return null;
+  }
+
+  function parentDeduction(s, age, req) {
+    if (age === "u22") {
+      if (s <= req) return { v: 630000, t: "特定扶養控除 63万円" };
+      for (var i = 0; i < STEPS.length; i++) {
+        if (s <= STEPS[i][0]) return { v: STEPS[i][1], t: "特定親族特別控除 " + man(STEPS[i][1]) + "万円" };
+      }
+      return { v: 0, t: "控除なし" };
+    }
+    if (s <= req) return { v: 380000, t: "扶養控除 38万円" };
+    return { v: 0, t: "控除なし" };
+  }
+
+  function calc() {
+    var yr = $("year").value;
+    var cfg = Y[yr];
+    var age = $("age").value;
+    var r = yen("income");
+    var h = r + yen("commute");
+    var d0 = cfg.D0;
+    var warn = "";
+
+    var d = salaryDeduction(r, d0);
+    var g = d === null ? null : Math.max(0, r - d);
+    if (d === null) warn = "給与収入が360万円を超えると、この計算の対象外です(目安の表示のみ)。";
+    else if (g > 1320000) warn = "給与所得が132万円を超える収入では、基礎控除の区分が変わるため、このツールの式の対象外です。";
+    if (yr === "2025") warn += (warn ? " " : "") + "2025年分の特定親族特別控除の段階ごとの額は未確認です(2026年分と同じと仮定)。";
+    $("warn").textContent = warn;
+
+    var healthLimit = age === "u22" ? 1500000 : 1300000;
+    var walls = [
+      { name: "住民税の所得割がかかり始める(翌年度)", line: d0 + 450000, over: r > d0 + 450000 },
+      { name: "親の控除(63万円)が減り始める", line: d0 + 850000, over: r > d0 + 850000, skip: age !== "u22" },
+      { name: "親の扶養控除(38万円)が受けられなくなる", line: d0 + cfg.REQ, over: r > d0 + cfg.REQ, skip: age === "u22" },
+      { name: "所得税がかかり始める", line: d0 + B[yr], over: r > d0 + B[yr] },
+      { name: "親の健康保険の扶養に入れなくなる", line: healthLimit, over: h >= healthLimit, health: true },
+      { name: "親の税の控除(特別控除)が完全になくなる", line: d0 + 1230000, over: r > d0 + 1230000, skip: age !== "u22" }
+    ];
+    walls = walls.filter(function (w) { return !w.skip; });
+    walls.sort(function (a, b) { return a.line - b.line; });
+
+    var rows = "", next = null, i;
+    for (i = 0; i < walls.length; i++) {
+      var w = walls[i];
+      var base = w.health ? h : r;
+      var left = w.line - base;
+      var cell;
+      if (w.over) cell = '<span class="ng">超過</span>';
+      else cell = '<span class="ok">あと ' + man(left) + '万円</span>';
+      if (!w.over && next === null) next = w;
+      var lineTxt = w.health ? man(w.line) + "万円未満" : man(w.line) + "万円以下";
+      rows += "<tr><td>" + w.name + "</td><td>" + lineTxt + (w.health ? "<br><span class=\"hint\">通勤手当を含む</span>" : "") + '</td><td class="r">' + cell + "</td></tr>";
+    }
+    $("walls").innerHTML = rows;
+
+    var box = $("result");
+    var html = "";
+    if (next) {
+      var nl = next.line - (next.health ? h : r);
+      var cls = nl <= 100000 ? "warn" : "ok";
+      html += '<p class="big ' + cls + '">次の壁まで あと ' + man(nl) + "万円</p>";
+      html += '<p class="status ' + cls + '">' + next.name + "(" + man(next.line) + "万円" + (next.health ? "未満" : "以下") + ")</p>";
+    } else {
+      html += '<p class="big ng">すべての壁を超えています</p>';
+    }
+    html += "<ul>";
+    html += "<li>設定: " + cfg.label + "、給与収入 " + man(r) + "万円" + (h !== r ? "、通勤手当込みの健保上の収入 " + man(h) + "万円" : "") + "</li>";
+    if (g !== null) {
+      var tax = g > B[yr] ? "かかる" : "かからない";
+      var pd = parentDeduction(g, age, cfg.REQ);
+      html += "<li>給与所得 " + man(g) + "万円(給与所得控除 " + man(Math.min(d, r)) + "万円を引いた額)</li>";
+      html += "<li>本人の所得税: " + tax + "(基礎控除 " + man(B[yr]) + "万円を引いて判定)</li>";
+      html += "<li>親の所得税の控除: " + pd.t + "</li>";
+    }
+    html += "<li>親の健康保険の扶養(" + (age === "u22" ? "19〜22歳は150万円未満" : "130万円未満") + "): " +
+      (h < healthLimit ? "基準の範囲内(ほかの条件もあります)" : "基準を超えています") + "</li>";
+    html += "</ul>";
+    box.innerHTML = html;
+  }
+
+  ["year", "income", "commute", "age"].forEach(function (id) {
+    $(id).addEventListener("input", calc);
+    $(id).addEventListener("change", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大学の欠席可能回数 計算ツール(3分の1ルール・遅刻換算つき)</title>
+<meta name="description" content="授業の総回数と欠席・遅刻の回数を入れるだけで、あと何回休めるかを計算。3分の2出席ルール、遅刻の欠席換算に対応。">
+<style>
+:root { --bg:#f6f7f9; --fg:#1d2330; --card:#fff; --accent:#2f6fed; --ok:#1c8a4b; --warn:#c77a00; --ng:#c62828; --line:#dfe3ea; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171d; --fg:#e8ebf0; --card:#1d222b; --accent:#6c9bff; --ok:#4cc27f; --warn:#f0b04a; --ng:#ff6b6b; --line:#2e3542; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.7; }
+main { max-width:560px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:1.35rem; margin:0 0 4px; }
+.lead { margin:0 0 20px; font-size:.9rem; opacity:.8; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+label { display:block; font-weight:600; font-size:.9rem; margin-top:12px; }
+label:first-child { margin-top:0; }
+.hint { font-weight:400; font-size:.8rem; opacity:.7; }
+input, select { width:100%; font-size:1rem; padding:10px; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); }
+#result .big { font-size:2rem; font-weight:700; margin:0; }
+#result .status { font-weight:700; margin:4px 0 8px; }
+#result ul { margin:8px 0 0; padding-left:1.2em; font-size:.9rem; }
+.ok { color:var(--ok); } .warn { color:var(--warn); } .ng { color:var(--ng); }
+h2 { font-size:1rem; margin:24px 0 8px; }
+.note { font-size:.85rem; opacity:.85; }
+footer { font-size:.75rem; opacity:.6; margin-top:24px; }
+a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>欠席可能回数 計算ツール</h1>
+  <p class="lead">授業の総回数と、ここまでの欠席・遅刻を入れると、あと何回休めるかが分かります。</p>
+
+  <div class="card">
+    <label>授業の総回数
+      <span class="hint">(15週なら15。集中講義などはその回数)</span>
+      <input id="total" type="number" inputmode="numeric" min="1" value="15">
+    </label>
+    <label>これまでの欠席回数
+      <input id="absent" type="number" inputmode="numeric" min="0" value="0">
+    </label>
+    <label>これまでの遅刻回数
+      <input id="late" type="number" inputmode="numeric" min="0" value="0">
+    </label>
+    <label>遅刻何回で欠席1回とみなす?
+      <span class="hint">(換算しない授業は「換算なし」)</span>
+      <select id="lateRate">
+        <option value="0">換算なし</option>
+        <option value="2">2回で1回</option>
+        <option value="3" selected>3回で1回</option>
+        <option value="4">4回で1回</option>
+      </select>
+    </label>
+    <label>必要な出席の割合
+      <select id="ratio">
+        <option value="2/3" selected>3分の2以上(欠席は3分の1まで)</option>
+        <option value="3/4">4分の3以上(欠席は4分の1まで)</option>
+        <option value="1/2">2分の1以上(欠席は2分の1まで)</option>
+      </select>
+    </label>
+    <label>欠席がちょうど上限の回数のとき
+      <select id="edge">
+        <option value="ok" selected>OK(上限「まで」休める)</option>
+        <option value="ng">NG(上限に「達したら」不可)</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="card" id="result" aria-live="polite"></div>
+
+  <h2>使い方と考え方</h2>
+  <p class="note">多くの大学では「授業回数の3分の2以上の出席」が単位認定の条件です。15回の授業なら、欠席が5回を超えると(大学によっては5回に達すると)単位が出なくなります。</p>
+  <p class="note">遅刻を欠席に換算する授業では、換算後の回数で判定します。「ちょうど上限」の扱いは大学・授業で異なるため、上の設定で切り替えてください。</p>
+
+  <h2>よくある質問</h2>
+  <p class="note"><b>Q. 「3分の1ルール」とは?</b><br>授業回数の3分の1を超えて欠席すると、単位が認められない(または成績評価の対象外になる)という考え方です。多くの大学で見られますが、割合や「ちょうど上限」の扱いは、大学・学部・授業で違います。</p>
+  <p class="note"><b>Q. 遅刻は欠席になりますか?</b><br>授業によります。「遅刻3回で欠席1回」のように換算する授業もあれば、遅刻を数えない授業もあります。上の設定で「換算なし」も選べます。</p>
+  <p class="note"><b>Q. 公欠・忌引・病気で休んだ分はどうなりますか?</b><br>扱いは大学ごとに違います。欠席に数えない扱いになる場合は、その回数を「欠席」から除いて入力してください。手続きや証明書の期限は、学務に確認してください。</p>
+  <p class="note"><a href="../">← ミニツール一覧へ</a></p>
+
+  <footer>
+    このツールは目安です。実際の単位認定の基準は、必ず履修要項・シラバス・担当教員の指示を確認してください。入力した内容は端末の外に送信されません。
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var ids = ["total", "absent", "late", "lateRate", "ratio", "edge"];
+
+  function toInt(id) {
+    var v = parseInt($(id).value, 10);
+    return isNaN(v) || v < 0 ? 0 : v;
+  }
+
+  function calc() {
+    var total = toInt("total");
+    var absent = toInt("absent");
+    var late = toInt("late");
+    var k = toInt("lateRate");
+    var parts = $("ratio").value.split("/");
+    var a = parseInt(parts[0], 10), b = parseInt(parts[1], 10);
+    var edgeOk = $("edge").value === "ok";
+    var box = $("result");
+
+    if (total < 1) {
+      box.innerHTML = "<p>総回数を1以上で入力してください。</p>";
+      return;
+    }
+
+    // 欠席の上限 = 総回数 × (b-a)/b。整数のまま判定して小数誤差を避ける
+    var num = total * (b - a);
+    var limit = edgeOk ? Math.floor(num / b) : Math.ceil(num / b) - 1;
+    if (limit < 0) limit = 0;
+
+    var converted = k > 0 ? Math.floor(late / k) : 0;
+    var used = absent + converted;
+    var left = limit - used;
+
+    var cls, status;
+    if (left < 0) { cls = "ng"; status = "上限を超えています。担当教員や教務に早めに相談を。"; }
+    else if (left === 0) { cls = "warn"; status = "もう休めません。次の欠席で危険です。"; }
+    else if (left <= 1) { cls = "warn"; status = "残りわずかです。"; }
+    else { cls = "ok"; status = "まだ余裕があります。"; }
+
+    var html = "";
+    html += '<p class="big ' + cls + '">' + (left < 0 ? "超過 " + (-left) + "回" : "あと " + left + "回") + "</p>";
+    html += '<p class="status ' + cls + '">' + status + "</p>";
+    html += "<ul>";
+    html += "<li>欠席の上限: " + limit + "回(総回数 " + total + "回)</li>";
+    html += "<li>換算後の欠席: " + used + "回(欠席 " + absent + "回" + (k > 0 ? " + 遅刻換算 " + converted + "回" : "") + ")</li>";
+    if (k > 0) {
+      var toNext = k - (late % k);
+      html += "<li>遅刻はあと " + toNext + "回で欠席1回分に換算されます</li>";
+    }
+    html += "</ul>";
+    box.innerHTML = html;
+  }
+
+  ids.forEach(function (id) {
+    $(id).addEventListener("input", calc);
+    $(id).addEventListener("change", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>

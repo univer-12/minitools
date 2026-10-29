@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ES文字数カウンター(改行・空白あり/なし・字数制限チェック)</title>
+<meta name="description" content="エントリーシートや志望動機の文字数を数えるツール。改行・空白を含む/含まない文字数、字数制限までの残りが分かります。">
+<style>
+:root { --bg:#f6f7f9; --fg:#1d2330; --card:#fff; --accent:#2f6fed; --ok:#1c8a4b; --warn:#c77a00; --ng:#c62828; --line:#dfe3ea; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171d; --fg:#e8ebf0; --card:#1d222b; --accent:#6c9bff; --ok:#4cc27f; --warn:#f0b04a; --ng:#ff6b6b; --line:#2e3542; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.7; }
+main { max-width:560px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:1.35rem; margin:0 0 4px; }
+.lead { margin:0 0 20px; font-size:.9rem; opacity:.8; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+label { display:block; font-weight:600; font-size:.9rem; margin-top:12px; }
+label:first-child { margin-top:0; }
+.hint { font-weight:400; font-size:.8rem; opacity:.7; }
+input, select, textarea { width:100%; font-size:1rem; padding:10px; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); font-family:inherit; }
+textarea { min-height:220px; resize:vertical; line-height:1.6; }
+#result .big { font-size:2rem; font-weight:700; margin:0; }
+#result .status { font-weight:700; margin:4px 0 8px; }
+#result ul { margin:8px 0 0; padding-left:1.2em; font-size:.9rem; }
+.bar { height:10px; border-radius:5px; background:var(--line); margin-top:8px; overflow:hidden; }
+.bar > div { height:100%; background:var(--ok); width:0; }
+.ok { color:var(--ok); } .warn { color:var(--warn); } .ng { color:var(--ng); }
+h2 { font-size:1rem; margin:24px 0 8px; }
+.note { font-size:.85rem; opacity:.85; }
+footer { font-size:.75rem; opacity:.6; margin-top:24px; }
+a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>ES文字数カウンター</h1>
+  <p class="lead">文章を貼り付けると、文字数がすぐに分かります。字数制限を入れると、残りや超過も表示します。</p>
+
+  <div class="card">
+    <label>文章
+      <textarea id="text" placeholder="ここに文章を入力・貼り付け"></textarea>
+    </label>
+    <label>字数制限 <span class="hint">(なければ空欄。例: 400)</span>
+      <input id="limit" type="number" inputmode="numeric" min="0" value="400">
+    </label>
+    <label>制限に使う数え方 <span class="hint">(募集要項の書き方に合わせてください)</span>
+      <select id="mode">
+        <option value="nl" selected>改行・空白を含める</option>
+        <option value="nonl">改行を除く(空白は含める)</option>
+        <option value="none">改行・空白を除く</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="card" id="result" aria-live="polite"></div>
+
+  <h2>使い方と考え方</h2>
+  <p class="note">企業によって、改行や空白を文字数に入れるかが違います。迷うときは、いちばん多く数える「改行・空白を含める」で制限に収まるようにしておくと安全です。</p>
+  <p class="note">半角の英数字も、全角の文字も、1文字として数えます。絵文字などは1文字として数えますが、企業のシステムでは違う数え方になることがあります。</p>
+
+  <h2>よくある質問</h2>
+  <p class="note"><b>Q. 改行や空白は文字数に入りますか?</b><br>企業やシステムによって違います。募集要項に書かれていなければ、「改行・空白を含める」で制限に収まるようにしておくと安全です。</p>
+  <p class="note"><b>Q. 字数制限は、どのくらい埋めればよいですか?</b><br>決まりはありません。一般的には、制限の9割前後まで書くのがよいとされています。このツールは、9割以上で緑色の表示になります。</p>
+  <p class="note"><b>Q. 提出画面の文字数と違います。</b><br>半角文字・絵文字・改行の数え方が、システムごとに違うためです。提出画面で表示される文字数を、最後に確認してください。</p>
+  <p class="note"><a href="../">← ミニツール一覧へ</a></p>
+
+  <footer>
+    このツールは目安です。提出するシステムの文字数表示を、最後に必ず確認してください。入力した文章は端末の外に送信されず、保存もされません。
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+
+  function count(s, mode) {
+    var t = s.replace(/\r\n/g, "\n");
+    if (mode === "nonl") t = t.replace(/\n/g, "");
+    else if (mode === "none") t = t.replace(/[\s　]/g, "");
+    return Array.from(t).length;
+  }
+
+  function calc() {
+    var s = $("text").value;
+    var lim = parseInt($("limit").value, 10);
+    var mode = $("mode").value;
+    var all = count(s, "nl");
+    var noNl = count(s, "nonl");
+    var none = count(s, "none");
+    var main = count(s, mode);
+    var lines = s === "" ? 0 : s.replace(/\r\n/g, "\n").split("\n").length;
+
+    var html = "", cls = "";
+    if (!isNaN(lim) && lim > 0) {
+      var left = lim - main;
+      var pct = Math.min(100, Math.round(main * 100 / lim));
+      cls = left < 0 ? "ng" : (main * 10 >= lim * 9 ? "ok" : "warn");
+      html += '<p class="big ' + cls + '">' + main + " / " + lim + "字</p>";
+      html += '<p class="status ' + cls + '">' + (left < 0 ? (-left) + "字オーバーです" : "あと " + left + "字入ります") + "</p>";
+      html += '<div class="bar"><div style="width:' + pct + "%;background:var(--" + (cls === "ng" ? "ng" : cls === "warn" ? "warn" : "ok") + ')"></div></div>';
+    } else {
+      html += '<p class="big">' + main + "字</p>";
+    }
+    html += "<ul>";
+    html += "<li>改行・空白を含める: " + all + "字</li>";
+    html += "<li>改行を除く(空白は含める): " + noNl + "字</li>";
+    html += "<li>改行・空白を除く: " + none + "字</li>";
+    html += "<li>行数: " + lines + "行</li>";
+    html += "</ul>";
+    $("result").innerHTML = html;
+  }
+
+  ["text", "limit", "mode"].forEach(function (id) {
+    $(id).addEventListener("input", calc);
+    $(id).addEventListener("change", calc);
+  });
+  calc();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>大学のGPA計算ツール(成績ごとの評価点を自由に設定)</title>
+<meta name="description" content="秀・優・良・可・不可ごとの取得単位数を入れるだけでGPAを計算。評価点は大学ごとに変更でき、目標GPAに必要な平均評価点も分かります。">
+<style>
+:root { --bg:#f6f7f9; --fg:#1d2330; --card:#fff; --accent:#2f6fed; --ok:#1c8a4b; --warn:#c77a00; --ng:#c62828; --line:#dfe3ea; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14171d; --fg:#e8ebf0; --card:#1d222b; --accent:#6c9bff; --ok:#4cc27f; --warn:#f0b04a; --ng:#ff6b6b; --line:#2e3542; }
+}
+* { box-sizing: border-box; }
+body { margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,"Hiragino Sans","Yu Gothic",sans-serif; line-height:1.7; }
+main { max-width:560px; margin:0 auto; padding:24px 16px 48px; }
+h1 { font-size:1.35rem; margin:0 0 4px; }
+.lead { margin:0 0 20px; font-size:.9rem; opacity:.8; }
+.card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
+label { display:block; font-weight:600; font-size:.9rem; margin-top:12px; }
+label:first-child { margin-top:0; }
+.hint { font-weight:400; font-size:.8rem; opacity:.7; }
+input, select { width:100%; font-size:1rem; padding:10px; margin-top:4px; border:1px solid var(--line); border-radius:8px; background:var(--bg); color:var(--fg); }
+table { width:100%; border-collapse:collapse; }
+th { text-align:left; font-size:.8rem; font-weight:600; opacity:.75; padding:0 6px 4px 0; }
+td { padding:4px 6px 4px 0; vertical-align:middle; }
+td input { margin-top:0; }
+td.g { font-weight:700; white-space:nowrap; }
+#result .big { font-size:2rem; font-weight:700; margin:0; }
+#result .status { font-weight:700; margin:4px 0 8px; }
+#result ul { margin:8px 0 0; padding-left:1.2em; font-size:.9rem; }
+.ok { color:var(--ok); } .warn { color:var(--warn); } .ng { color:var(--ng); }
+h2 { font-size:1rem; margin:24px 0 8px; }
+.note { font-size:.85rem; opacity:.85; }
+footer { font-size:.75rem; opacity:.6; margin-top:24px; }
+a { color:var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>GPA 計算ツール</h1>
+  <p class="lead">成績ごとの取得単位数を入れると、GPAが分かります。評価点は大学ごとに違うため、自分の大学の値に直せます。</p>
+
+  <div class="card">
+    <label>評価点の設定
+      <span class="hint">(多くの大学は秀4・優3・良2・可1・不可0。違う場合は「自由に設定」)</span>
+      <select id="preset">
+        <option value="std" selected>標準(4 / 3 / 2 / 1 / 0)</option>
+        <option value="custom">自由に設定する</option>
+      </select>
+    </label>
+    <table style="margin-top:12px">
+      <thead><tr><th>成績</th><th>評価点</th><th>取得単位数</th></tr></thead>
+      <tbody>
+        <tr><td class="g">秀(S)</td><td><input id="p0" type="number" inputmode="decimal" step="0.1" min="0" value="4"></td><td><input id="c0" type="number" inputmode="numeric" min="0" value="0"></td></tr>
+        <tr><td class="g">優(A)</td><td><input id="p1" type="number" inputmode="decimal" step="0.1" min="0" value="3"></td><td><input id="c1" type="number" inputmode="numeric" min="0" value="0"></td></tr>
+        <tr><td class="g">良(B)</td><td><input id="p2" type="number" inputmode="decimal" step="0.1" min="0" value="2"></td><td><input id="c2" type="number" inputmode="numeric" min="0" value="0"></td></tr>
+        <tr><td class="g">可(C)</td><td><input id="p3" type="number" inputmode="decimal" step="0.1" min="0" value="1"></td><td><input id="c3" type="number" inputmode="numeric" min="0" value="0"></td></tr>
+        <tr><td class="g">不可(D)</td><td><input id="p4" type="number" inputmode="decimal" step="0.1" min="0" value="0"></td><td><input id="c4" type="number" inputmode="numeric" min="0" value="0"></td></tr>
+      </tbody>
+    </table>
+    <label>不可の単位をGPAに含める?
+      <span class="hint">(含める大学が多いですが、履修要項で確認を)</span>
+      <select id="failIn">
+        <option value="1" selected>含める</option>
+        <option value="0">含めない</option>
+      </select>
+    </label>
+  </div>
+
+  <div class="card" id="result" aria-live="polite"></div>
+
+  <div class="card">
+    <label>目標GPA
+      <input id="target" type="number" inputmode="decimal" step="0.01" min="0" value="3.00">
+    </label>
+    <label>今後に履修する単位数
+      <span class="hint">(次の学期以降、成績がつく予定の単位)</span>
+      <input id="future" type="number" inputmode="numeric" min="0" value="20">
+    </label>
+    <div id="goal" aria-live="polite" style="margin-top:12px"></div>
+  </div>
+
+  <h2>使い方と考え方</h2>
+  <p class="note">GPA = (評価点 × 単位数)の合計 ÷ 履修した単位数の合計。例えば優(3点)の4単位と良(2点)の2単位なら、(3×4 + 2×2) ÷ 6 = 2.67 です。</p>
+  <p class="note">認定科目・合格/不合格だけの科目・履修を取り消した科目などは、GPAの計算から除く大学が多いので、入力しないでください。</p>
+
+  <h2>よくある質問</h2>
+  <p class="note"><b>Q. GPAとは?</b><br>成績を評価点(例: 優=3)にして、単位数の重みをつけて平均した値です。単位数の多い科目ほど、GPAへの影響が大きくなります。</p>
+  <p class="note"><b>Q. 評価点は大学によって違いますか?</b><br>違います。秀4・優3・良2・可1・不可0の大学が多いですが、A+やA-などの細かい区分で点数を決めている大学もあります。「自由に設定する」で、自分の大学の評価点に合わせてください。</p>
+  <p class="note"><b>Q. 不可の単位はGPAに入りますか?</b><br>入れる大学が多い一方で、入れない大学もあります。上の設定で切り替えられるので、履修要項の算出方法に合わせてください。</p>
+  <p class="note"><b>Q. 留学や大学院の出願で使うGPAも、これで出せますか?</b><br>提出先が、計算方法や評価点の換算を指定していることがあります。提出先の指示を優先し、このツールは目安として使ってください。</p>
+  <p class="note"><a href="../">← ミニツール一覧へ</a></p>
+
+  <footer>
+    このツールは目安です。実際のGPAの算出方法・評価点は、必ず大学の履修要項や学務の案内を確認してください。入力した内容は端末の外に送信されません。
+  </footer>
+</main>
+
+<script>
+(function () {
+  var $ = function (id) { return document.getElementById(id); };
+  var STD = [4, 3, 2, 1, 0];
+
+  function num(id, fallback) {
+    var v = parseFloat($(id).value);
+    return isNaN(v) || v < 0 ? fallback : v;
+  }
+  function cnt(id) {
+    var v = parseInt($(id).value, 10);
+    return isNaN(v) || v < 0 ? 0 : v;
+  }
+
+  function calc() {
+    var failIn = $("failIn").value === "1";
+    var sum = 0, credits = 0, i;
+    for (i = 0; i < 5; i++) {
+      // 評価点は0.1刻みを想定し、10倍の整数で足して小数誤差を避ける
+      var p = Math.round(num("p" + i, 0) * 10);
+      var c = cnt("c" + i);
+      if (i === 4 && !failIn) continue;
+      sum += p * c;
+      credits += c;
+    }
+    var box = $("result");
+    if (credits === 0) {
+      box.innerHTML = "<p>取得単位数を入れると、GPAが表示されます。</p>";
+      $("goal").innerHTML = "";
+      return;
+    }
+    var gpa = sum / 10 / credits;
+    var cls = gpa >= 3 ? "ok" : (gpa >= 2 ? "warn" : "ng");
+    var html = '<p class="big ' + cls + '">GPA ' + gpa.toFixed(2) + "</p>";
+    html += "<ul>";
+    html += "<li>対象の単位数: " + credits + "単位</li>";
+    html += "<li>評価点 × 単位数の合計: " + (sum / 10).toFixed(1) + "</li>";
+    html += "</ul>";
+    box.innerHTML = html;
+
+    var target = num("target", 0);
+    var fut = cnt("future");
+    var g = $("goal");
+    if (fut < 1) {
+      g.innerHTML = '<p class="note">今後の単位数を1以上で入れると、目標に必要な平均評価点が分かります。</p>';
+      return;
+    }
+    var need = (target * (credits + fut) - sum / 10) / fut;
+    var max = 0;
+    for (i = 0; i < 5; i++) max = Math.max(max, num("p" + i, 0));
+    var msg, c2;
+    if (need <= 0) { c2 = "ok"; msg = "すでに目標を上回っています。今後の成績に関わらず達成できます(不可を含める設定だと変わる場合があります)。"; }
+    else if (need > max) { c2 = "ng"; msg = "最高評価点(" + max + ")でも届きません。目標を下げるか、単位数を増やす必要があります。"; }
+    else { c2 = need > max - 0.5 ? "warn" : "ok"; msg = "今後の " + fut + "単位の平均で、評価点 " + need.toFixed(2) + " 以上が必要です。"; }
+    g.innerHTML = '<p class="status ' + c2 + '" style="margin:0">' + msg + "</p>";
+  }
+
+  function applyPreset() {
+    var std = $("preset").value === "std";
+    for (var i = 0; i < 5; i++) {
+      $("p" + i).disabled = std;
+      if (std) $("p" + i).value = STD[i];
+    }
+    calc();
+  }
+
+  ["c0","c1","c2","c3","c4","p0","p1","p2","p3","p4","failIn","target","future"].forEach(function (id) {
+    $(id).addEventListener("input", calc);
+    $(id).addEventListener("change", calc);
+  });
+  $("preset").addEventListener("change", applyPreset);
+  applyPreset();
+})();
+</script>
+</body>
+</html>
